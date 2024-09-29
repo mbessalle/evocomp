@@ -8,7 +8,7 @@
 # imports framework
 import sys
 
-from environment import Environment
+from evoman.environment import Environment
 from demo_controller import player_controller
 
 # imports other libs

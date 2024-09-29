@@ -2,7 +2,7 @@ from demo_controller import player_controller
 import os
 import matplotlib.pyplot as plt
 import numpy as np
-from environment import Environment
+from evoman.environment import Environment
 
 def create_box_plot(gains_ea1, gains_ea2, enemies):
     """Creates a box plot for individual gains."""
