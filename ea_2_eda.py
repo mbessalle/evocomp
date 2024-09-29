@@ -171,7 +171,7 @@ def plot_fitness(all_best_fitness_per_gen, all_mean_fitness_per_gen, gens, enemy
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
-    plt.savefig(f'fitness_over_generations_enemy_{enemy}.png')
+    plt.savefig(f'ea_2_eda_fitness_over_generations_enemy_{enemy}.png')
     plt.show()
 
 
@@ -209,7 +209,7 @@ def create_box_plot(gains, enemy):
     plt.boxplot(gains)
     plt.title(f'Box Plot of Individual Gains - Enemy {enemy}')
     plt.ylabel('Gain')
-    plt.savefig(f'individual_gains_enemy_{enemy}.png')
+    plt.savefig(f'ea_2_eda_individual_gains_enemy_{enemy}.png')
     plt.show()
 
 
