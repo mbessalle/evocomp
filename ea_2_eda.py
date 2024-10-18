@@ -45,19 +45,25 @@ def get_fitness_stats(fit_pop):
     std = np.std(fit_pop)
     return best, mean, std
 
-def generate_offspring(parents, min_var, npop):
+def generate_offspring(parents, min_var, npop, k, mean_converged):
     parents_mean = np.mean(parents, axis=0)
     parents_cov = np.cov(parents, rowvar=False)
-    # add min variance to cov matrix
-    for j in range(parents_cov.shape[0]):
-        if parents_cov[j, j] < min_var:
-            parents_cov[j, j] = min_var
 
-    offspring = np.random.multivariate_normal(parents_mean,parents_cov, npop - 1)
+    if mean_converged:
+        new_cov = parents_cov.copy()
+        # add min variance to cov matrix
+        for j in range(parents_cov.shape[0]):
+            if parents_cov[j, j] < min_var:
+                new_cov[j, j] = min_var
+
+
+        offspring = np.random.multivariate_normal(parents_mean,new_cov, npop - 1)
+    else:
+        offspring = np.random.multivariate_normal(parents_mean, parents_cov, npop - k)
     return offspring
 
 
-def run_eda(enemy,run_no):
+def run_eda(enemy):
     # choose this for not using visuals and thus making experiments faster
     headless = True
     if headless:
@@ -89,15 +95,21 @@ def run_eda(enemy,run_no):
 
     # start writing your own code from here
     npop = 100
-    min_var = 1e-6
+    min_var = 1e-5
     gens = 30
-    k = 20
+    k = 10
+
+    lower_bound = -1
+    upper_bound = 1
+
+    mean_converged = False
 
     fitness_stats = []
 
 
     # initial pop at gen 0
-    pop = np.random.multivariate_normal(np.zeros(n_vars), np.eye(n_vars), size=npop)
+    #pop = np.random.multivariate_normal(np.zeros(n_vars), np.eye(n_vars), size=npop*10)
+    pop = np.random.uniform(low=lower_bound, high=upper_bound, size=(npop*10, n_vars))
 
     fit_pop = evaluate(env, pop)
     best, mean, std = get_fitness_stats(fit_pop)
@@ -107,18 +119,26 @@ def run_eda(enemy,run_no):
 
 
     for i in range(gens-1):
-
         # select parents for next gen
         parent_indices, best_parent_idx = select_parents(fit_pop,k)
+
+        if fit_pop[best] - mean <= 1.0:
+             mean_converged = True
+        else:
+             mean_converged = False
+
 
         parents = pop[parent_indices]
         best_parent = pop[best_parent_idx]
 
         # generate offspring
-        offsprings = generate_offspring(parents, min_var, npop)
+        offsprings = generate_offspring(parents, min_var, npop, k, mean_converged)
 
-        # elitism
-        pop = np.vstack((offsprings, best_parent))
+        # elitism/survivor selection
+        if mean_converged:
+            pop = np.vstack((offsprings, best_parent))
+        else:
+            pop = np.vstack((offsprings, parents))
 
         fit_pop = evaluate(env, pop)
         best, mean, std = get_fitness_stats(fit_pop)
@@ -151,7 +171,7 @@ def plot_fitness(all_best_fitness_per_gen, all_mean_fitness_per_gen, gens, enemy
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
-    plt.savefig(f'fitness_over_generations_enemy_{enemy}.png')
+    plt.savefig(f'ea_2_eda_fitness_over_generations_enemy_{enemy}.png')
     plt.show()
 
 
@@ -189,11 +209,13 @@ def create_box_plot(gains, enemy):
     plt.boxplot(gains)
     plt.title(f'Box Plot of Individual Gains - Enemy {enemy}')
     plt.ylabel('Gain')
-    plt.savefig(f'individual_gains_enemy_{enemy}.png')
+    plt.savefig(f'ea_2_eda_individual_gains_enemy_{enemy}.png')
     plt.show()
 
 
 if __name__ == '__main__':
+
+
     enemies = [1,2,3]
 
     best_sols = {}
@@ -212,7 +234,7 @@ if __name__ == '__main__':
         run_times[enemy] = []
 
         for run in range(10):
-            fitness_stats, best_sol, run_time = run_eda(enemy,run)
+            fitness_stats, best_sol, run_time = run_eda(enemy)
 
             with open(f"eda_test/stats_enemy{enemy}_run_{run}", 'w') as file:
                 for item in fitness_stats:
@@ -226,7 +248,7 @@ if __name__ == '__main__':
             stats = list(zip(*fitness_stats))
             best_fitnesses_per_gen[enemy].append(stats[0])
             mean_fitnesses_per_gen[enemy].append(stats[1])
-            std_fitnesses_per_gen[enemy].append(stats[2])
+            #std_fitnesses_per_gen[enemy].append(stats[2])
             run_times[enemy].append(run_time)
 
         plot_fitness(best_fitnesses_per_gen[enemy], mean_fitnesses_per_gen[enemy],30,enemy)
@@ -256,6 +278,11 @@ if __name__ == '__main__':
         gains = test_best_solutions(env, best_sols[enemy])
 
         create_box_plot(gains, enemy)
+
+
+
+
+
 
 
 
